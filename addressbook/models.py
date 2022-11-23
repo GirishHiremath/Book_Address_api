@@ -8,5 +8,5 @@ class AddreBook(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     place = Column(String,nullable= True)
-    lat = Column(Float)
-    lng = Column(Float)
+    lat = Column(Float) #radians
+    lng = Column(Float) #radians

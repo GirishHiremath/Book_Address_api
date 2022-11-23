@@ -3,10 +3,19 @@ from .import schemas, models
 from .database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
-
+from math import sqrt, radians, cos, acos, sin, pow, pi
 
 app = FastAPI()
 models.Base.metadata.create_all(engine)
+
+raw_con = engine.raw_connection()
+raw_con.create_function("cos", 1, cos)
+raw_con.create_function("acos", 1, acos)
+raw_con.create_function("sin", 1, sin)
+raw_con.create_function("radians", 1, radians)
+raw_con.create_function("sqrt", 1, sqrt)
+raw_con.create_function("pow", 1, pow)
+raw_con.create_function("pi", 1, pi)
 
 
 def get_database_session():
@@ -63,7 +72,20 @@ def destory(id, db: Session = Depends(get_database_session)):
 
 
 @app.get('/distance/')
-def get_places(dist,lat,lng,db: Session = Depends(get_database_session)):
-   data=db.query(models.AddreBook).from_statement(
-    text('SELECT * FROM addrbook WHERE acos(sin("lat") * sin("models.addreBook.lat") + cos("lat") * cos("models.addreBook.lat") * cos("models.addreBook.lng" - ("lng"))) * 6371 <= "dist"')).all()
-   return data
+def get_places(dist:int,lat:float,lng:float,db: Session = Depends(get_database_session)):
+    cursor = raw_con.cursor()
+   
+    cursor.execute ('SELECT * FROM('
+    'SELECT *,(((acos(sin(("lat"*"pi"/180)) * '
+    'sin((lat*"pi"/180))+cos(("lat"*"pi"/180)) * '
+    'cos((lat*"pi"/180)) * cos((("lng" - lng)*"pi"/180))))*180/"pi")*60*1.1515*1.609344) as distance FROM addrbook  WHERE distance <= "dist")')
+
+    data = cursor.fetchall()
+    return data
+   
+
+
+@app.get('/caldistance/')
+def cal_distance(lat1:float,lng1:float,lat2:float,lng2:float,db: Session = Depends(get_database_session)):
+    dist = acos(sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lng1 - lng2)) * 6371
+    return dist
